@@ -7,7 +7,7 @@ var path = require('path');
 var api = require('./api.js');
 var blocked = require('./blocked.json');
 
-var port = 8080;
+var port = process.env.PORT || 8080;
 var subdomainsAsPath = false;
 var proxy = httpProxy.createProxyServer({
   agent: new https.Agent({
