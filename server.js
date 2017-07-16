@@ -28,6 +28,11 @@ proxy.on('error', function (err, req, res) {
   res.end('Proxying failed.');
 });
 
+proxy.on('proxyReq', function (proxyReq, req, res, options) {
+  proxyReq.setHeader('User-Agent', 'Mozilla');
+  proxyReq.removeHeader('roblox-id');
+});
+
 var app = express();
 
 app.use(function (req, res, next) {
