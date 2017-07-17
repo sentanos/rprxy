@@ -63,9 +63,11 @@ app.use(function (req, res, next) {
 app.use('/proxy', express.static('./static'));
 app.use('/proxy', api);
 
-app.get('/', function (req, res) {
+app.get('/', function (req, res, next) {
   if (!getSubdomain(req)) {
     res.sendFile(path.join(__dirname, '/static/home.html'));
+  } else {
+    next();
   }
 });
 
