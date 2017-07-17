@@ -18,6 +18,21 @@ var proxy = httpProxy.createProxyServer({
   changeOrigin: true
 });
 
+function getSubdomain (req) {
+  var sub;
+  if (subdomainsAsPath) {
+    var original = url.parse(req.url);
+    var split = original.path.split('/');
+    sub = (split[1] + '.') || '';
+    split.splice(1, 1);
+    req.url = split.join('/');
+  } else {
+    var domain = req.headers.host;
+    sub = domain.slice(0, domain.lastIndexOf('.', domain.lastIndexOf('.') - 1) + 1);
+  }
+  return sub;
+}
+
 proxy.on('error', function (err, req, res) {
   console.error(err);
 
@@ -49,24 +64,15 @@ app.use('/proxy', express.static('./static'));
 app.use('/proxy', api);
 
 app.get('/', function (req, res) {
-  res.sendFile(path.join(__dirname, '/static/home.html'));
+  if (!getSubdomain(req)) {
+    res.sendFile(path.join(__dirname, '/static/home.html'));
+  }
 });
 
 app.use(function (req, res, next) {
-  var sub;
   console.log('PROXY REQUEST; URL: ' + req.url + '; OPT: ' + req.body + '; COOKIE: ' + req.headers.cookie + ';');
-  if (subdomainsAsPath) {
-    var original = url.parse(req.url);
-    var split = original.path.split('/');
-    sub = (split[1] + '.') || '';
-    split.splice(1, 1);
-    req.url = split.join('/');
-  } else {
-    var domain = req.headers.host;
-    sub = domain.slice(0, domain.lastIndexOf('.', domain.lastIndexOf('.') - 1) + 1);
-  }
   proxy.web(req, res, {
-    target: 'https://' + sub + 'roblox.com'
+    target: 'https://' + getSubdomain(req) + 'roblox.com'
   });
 });
 
