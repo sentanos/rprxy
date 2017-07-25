@@ -6,6 +6,7 @@ var path = require('path');
 
 var api = require('./api.js');
 var blocked = require('./blocked.json');
+var reBlocked = require('./re_blocked.json');
 
 var port = process.env.PORT || 8080;
 var subdomainsAsPath = false;
@@ -53,6 +54,12 @@ var app = express();
 app.use(function (req, res, next) {
   for (var i = 0; i < blocked.length; i++) {
     if (req.url === blocked[i]) {
+      res.end('URL blocked.');
+      return;
+    }
+  }
+  for (i = 0; i < reBlocked.length; i++) {
+    if (req.url.match(reBlocked[i])) {
       res.end('URL blocked.');
       return;
     }
