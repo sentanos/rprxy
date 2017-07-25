@@ -5,8 +5,8 @@ var url = require('url');
 var path = require('path');
 
 var api = require('./api.js');
-var blocked = require('./blocked.json');
-var reBlocked = require('./re_blocked.json');
+var blocked = require('./static/blocked.json');
+var reBlocked = require('./static/re_blocked.json');
 
 var port = process.env.PORT || 8080;
 var subdomainsAsPath = false;
