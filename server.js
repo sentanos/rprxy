@@ -22,14 +22,29 @@ var proxy = httpProxy.createProxyServer({
   changeOrigin: true
 });
 
-function getSubdomain (req) {
+function stripSub (link) {
+  var original = url.parse(link);
+  var sub = '';
+  var path = original.path;
+  if (subdomainsAsPath) {
+    var split = path.split('/');
+    sub = split[1] && split[1] + '.';
+    split.splice(1, 1);
+    path = split.join('/');
+  }
+  console.log(original);
+  console.log(path);
+  return [path || '/', sub];
+}
+
+function getSubdomain (req, rewrite) {
   var sub;
   if (subdomainsAsPath) {
-    var original = url.parse(req.url);
-    var split = original.path.split('/');
-    sub = (split[1] + '.') || '';
-    split.splice(1, 1);
-    req.url = split.join('/');
+    var res = stripSub(req.url);
+    if (rewrite) {
+      req.url = res[0];
+    }
+    sub = res[1];
   } else {
     var domain = req.headers.host;
     sub = domain.slice(0, domain.lastIndexOf('.', domain.lastIndexOf('.') - 1) + 1);
@@ -58,6 +73,16 @@ app.use('/proxy', express.static('./static'));
 app.use('/proxy', api);
 
 app.use(function (req, res, next) {
+  if (serveHomepage && stripSub(req.url)[0] === '/') {
+    if (serveHomepageOnAllSubdomains || !getSubdomain(req)) {
+      res.sendFile(path.join(__dirname, '/static/home.html'));
+      return;
+    }
+  }
+  next();
+});
+
+app.use(function (req, res, next) {
   for (var i = 0; i < blocked.length; i++) {
     if (req.url === blocked[i]) {
       res.end('URL blocked.');
@@ -73,25 +98,19 @@ app.use(function (req, res, next) {
   next();
 });
 
-if (serveHomepage) {
-  app.get('/', function (req, res, next) {
-    if (serveHomepageOnAllSubdomains || !getSubdomain(req)) {
-      res.sendFile(path.join(__dirname, '/static/home.html'));
-    } else {
-      next();
-    }
-  });
-}
-
 app.use(function (req, res, next) {
-  console.log('PROXY REQUEST; URL: ' + req.url + '; OPT: ' + req.body + '; COOKIE: ' + req.headers.cookie + ';');
+  console.log('PROXY REQUEST; HOST: ' + req.headers.host + '; URL: ' + req.url + '; OPT: ' + req.body + '; COOKIE: ' + req.headers.cookie + ';');
   proxy.web(req, res, {
-    target: 'https://' + (getSubdomain(req) || 'www.') + 'roblox.com'
+    target: 'https://' + (getSubdomain(req, true) || 'www.') + 'roblox.com'
   });
 });
 
 app.use(function (err, req, res, next) {
   console.error(err);
+
+  res.writeHead(500, {
+    'Content-Type': 'text/plain'
+  });
 
   res.end('Proxy handler failed.');
 });
