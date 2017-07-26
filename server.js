@@ -32,8 +32,6 @@ function stripSub (link) {
     split.splice(1, 1);
     path = split.join('/');
   }
-  console.log(original);
-  console.log(path);
   return [path || '/', sub];
 }
 
