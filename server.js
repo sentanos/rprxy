@@ -8,8 +8,11 @@ var api = require('./api.js');
 var blocked = require('./static/blocked.json');
 var reBlocked = require('./static/re_blocked.json');
 
-var port = process.env.PORT || 8080;
+var port = process.env.PORT || 80;
 var subdomainsAsPath = false;
+var serveHomepage = true;
+var serveHomepageOnAllSubdomains = false;
+
 var proxy = httpProxy.createProxyServer({
   agent: new https.Agent({
     checkServerIdentity: function (host, cert) {
@@ -51,6 +54,9 @@ proxy.on('proxyReq', function (proxyReq, req, res, options) {
 
 var app = express();
 
+app.use('/proxy', express.static('./static'));
+app.use('/proxy', api);
+
 app.use(function (req, res, next) {
   for (var i = 0; i < blocked.length; i++) {
     if (req.url === blocked[i]) {
@@ -67,21 +73,20 @@ app.use(function (req, res, next) {
   next();
 });
 
-app.use('/proxy', express.static('./static'));
-app.use('/proxy', api);
-
-app.get('/', function (req, res, next) {
-  if (!getSubdomain(req)) {
-    res.sendFile(path.join(__dirname, '/static/home.html'));
-  } else {
-    next();
-  }
-});
+if (serveHomepage) {
+  app.get('/', function (req, res, next) {
+    if (serveHomepageOnAllSubdomains || !getSubdomain(req)) {
+      res.sendFile(path.join(__dirname, '/static/home.html'));
+    } else {
+      next();
+    }
+  });
+}
 
 app.use(function (req, res, next) {
   console.log('PROXY REQUEST; URL: ' + req.url + '; OPT: ' + req.body + '; COOKIE: ' + req.headers.cookie + ';');
   proxy.web(req, res, {
-    target: 'https://' + getSubdomain(req) + 'roblox.com'
+    target: 'https://' + (getSubdomain(req) || 'www.') + 'roblox.com'
   });
 });
 
