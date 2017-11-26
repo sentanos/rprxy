@@ -1,4 +1,4 @@
-var httpProxy = require('http-proxy');
+var proxy = require('http-proxy');
 var express = require('express');
 var https = require('https');
 var url = require('url');
@@ -13,12 +13,16 @@ var subdomainsAsPath = false;
 var serveHomepage = true;
 var serveHomepageOnAllSubdomains = false;
 
-var proxy = httpProxy.createProxyServer({
+var httpsProxy = proxy.createProxyServer({
   agent: new https.Agent({
     checkServerIdentity: function (host, cert) {
       return undefined;
     }
   }),
+  changeOrigin: true
+});
+
+var httpProxy = proxy.createProxyServer({
   changeOrigin: true
 });
 
@@ -50,7 +54,7 @@ function getSubdomain (req, rewrite) {
   return sub;
 }
 
-proxy.on('error', function (err, req, res) {
+function onProxyError (err, req, res) {
   console.error(err);
 
   res.writeHead(500, {
@@ -58,12 +62,17 @@ proxy.on('error', function (err, req, res) {
   });
 
   res.end('Proxying failed.');
-});
+}
 
-proxy.on('proxyReq', function (proxyReq, req, res, options) {
+function onProxyReq (proxyReq, req, res, options) {
   proxyReq.setHeader('User-Agent', 'Mozilla');
   proxyReq.removeHeader('roblox-id');
-});
+}
+
+httpsProxy.on('error', onProxyError);
+httpsProxy.on('proxyReq', onProxyReq);
+httpProxy.on('error', onProxyError);
+httpProxy.on('proxyReq', onProxyReq);
 
 var app = express();
 
@@ -98,9 +107,16 @@ app.use(function (req, res, next) {
 
 app.use(function (req, res, next) {
   console.log('PROXY REQUEST; HOST: ' + req.headers.host + '; URL: ' + req.url + '; OPT: ' + req.body + '; COOKIE: ' + req.headers.cookie + ';');
-  proxy.web(req, res, {
-    target: 'https://' + (getSubdomain(req, true) || 'www.') + 'roblox.com'
-  });
+  var subdomain = getSubdomain(req, true);
+  var proto = subdomain === 'wiki.' ? 'http' : 'https';
+  var options = {
+    target: proto + '://' + (subdomain || 'www.') + 'roblox.com'
+  };
+  if (proto === 'https') {
+    httpsProxy.web(req, res, options);
+  } else if (proto === 'http') {
+    httpProxy.web(req, res, options);
+  }
 });
 
 app.use(function (err, req, res, next) {
