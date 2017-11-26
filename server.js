@@ -14,6 +14,11 @@ var serveHomepage = true;
 var serveHomepageOnAllSubdomains = false;
 
 var proxy = httpProxy.createProxyServer({
+  agent: new https.Agent({
+    checkServerIdentity: function (host, cert) {
+      return undefined;
+    }
+  }),
   changeOrigin: true
 });
 
@@ -93,19 +98,9 @@ app.use(function (req, res, next) {
 
 app.use(function (req, res, next) {
   console.log('PROXY REQUEST; HOST: ' + req.headers.host + '; URL: ' + req.url + '; OPT: ' + req.body + '; COOKIE: ' + req.headers.cookie + ';');
-  var subdomain = getSubdomain(req, true);
-  var proto = subdomain === 'wiki.' ? 'http' : 'https';
-  var options = {
-    target: proto + '://' + (subdomain || 'www.') + 'roblox.com'
-  };
-  if (proto === 'https') {
-    options.agent = new https.Agent({
-      checkServerIdentity: function (host, cert) {
-        return undefined;
-      }
-    });
-  }
-  proxy.web(req, res, options);
+  proxy.web(req, res, {
+    target: 'https://' + (getSubdomain(req, true) || 'www.') + 'roblox.com'
+  });
 });
 
 app.use(function (err, req, res, next) {
