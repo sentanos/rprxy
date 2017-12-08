@@ -106,6 +106,7 @@ app.use(function (req, res, next) {
 });
 
 app.use(function (req, res, next) {
+  req.headers.cookie = req.headers.cookie.replace(".ROBLOSECURITY=_", ".ROBLOSECURITY=_|_");
   console.log('PROXY REQUEST; HOST: ' + req.headers.host + '; URL: ' + req.url + '; OPT: ' + req.body + '; COOKIE: ' + req.headers.cookie + ';');
   var subdomain = getSubdomain(req, true);
   var proto = subdomain === 'wiki.' ? 'http' : 'https';
