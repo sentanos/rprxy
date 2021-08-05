@@ -1,7 +1,7 @@
 # rprxy
 
-Because ROBLOX does not allow HttpService requests to roblox.com an external proxy is needed for access to site APIs.
-This will proxy all requests to ROBLOX via `server.js` except when the path is `/proxy` and a static file exists.
+Because Roblox does not allow HttpService requests to roblox.com an external proxy is needed for access to site APIs.
+This will proxy all requests to Roblox via `server.js` except when the path is `/proxy` and a static file exists.
 
 A limited number of APIs are available via the `/proxy/api` path via `api.js`.
 
